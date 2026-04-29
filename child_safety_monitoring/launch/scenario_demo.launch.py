@@ -25,7 +25,15 @@ def generate_launch_description():
         ],
     )
 
+    alert_console_node = Node(
+        package='child_safety_monitoring',
+        executable='alert_console_node',
+        name='alert_console_node',
+        output='screen',
+    )
+
     return LaunchDescription([
         decision_node,
         scenario_simulator_node,
+        alert_console_node,
     ])

@@ -30,6 +30,7 @@ setup(
             'decision_node = child_safety_monitoring.nodes.decision_node:main',
             'visualization_node = child_safety_monitoring.nodes.visualization_node:main',
             'scenario_simulator_node = child_safety_monitoring.nodes.scenario_simulator_node:main',
+            'alert_console_node = child_safety_monitoring.nodes.alert_console_node:main',
         ],
     },
 )
