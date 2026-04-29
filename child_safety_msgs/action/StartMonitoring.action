@@ -1,0 +1,6 @@
+bool record_debug
+---
+uint32 alerts_raised
+---
+float32 current_score
+string current_state

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>child_safety_monitoring</name>
+  <version>0.1.0</version>
+  <description>ROS 2 prototype for suspicious child-lifting pattern detection.</description>
+  <maintainer email="student@example.com">Student Team</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>vision_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>child_safety_msgs</depend>
+
+  <test_depend>python3-pytest</test_depend>
+</package>

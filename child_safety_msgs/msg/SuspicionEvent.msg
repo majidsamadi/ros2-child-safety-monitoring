@@ -1,0 +1,8 @@
+std_msgs/Header header
+builtin_interfaces/Time event_start
+builtin_interfaces/Time current_time
+string level
+string explanation
+float32 suspicion_score
+sensor_msgs/RegionOfInterest smaller_roi
+sensor_msgs/RegionOfInterest larger_roi

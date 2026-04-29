@@ -1,0 +1,35 @@
+interaction_analyzer_node:
+  ros__parameters:
+    history_window_seconds: 0.75
+    contact_distance_threshold_norm: 1.0
+    lift_velocity_threshold_norm_per_sec: 0.60
+    feet_off_ground_threshold_norm: 0.25
+    limb_speed_low_norm_per_sec: 1.50
+    limb_speed_high_norm_per_sec: 2.50
+    limb_accel_low_norm_per_sec2: 4.00
+    limb_accel_high_norm_per_sec2: 8.00
+    co_motion_threshold: 0.35
+    score_warning_threshold: 0.55
+    score_high_threshold: 0.75
+
+decision_node:
+  ros__parameters:
+    warning_threshold: 0.55
+    high_threshold: 0.75
+    warning_persistence_seconds: 0.30
+    high_persistence_seconds: 0.50
+
+pose_estimator_node:
+  ros__parameters:
+    model_path: "yolo11n-pose.pt"
+    confidence_threshold: 0.35
+    image_topic: "/camera/image_raw"
+    raw_pose_topic: "/poses/raw"
+
+video_source_node:
+  ros__parameters:
+    source_type: "webcam"
+    camera_index: 0
+    video_path: ""
+    fps: 20.0
+    loop_video: true
