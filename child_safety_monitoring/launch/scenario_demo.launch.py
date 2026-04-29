@@ -21,6 +21,7 @@ def generate_launch_description():
                 'rate_hz': 5.0,
                 'scenario_duration_seconds': 4.0,
                 'loop': True,
+                'log_each_message': False,
             }
         ],
     )

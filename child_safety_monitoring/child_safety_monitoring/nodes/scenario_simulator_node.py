@@ -22,11 +22,13 @@ class ScenarioSimulatorNode(Node):
         self.declare_parameter('rate_hz', 5.0)
         self.declare_parameter('scenario_duration_seconds', 4.0)
         self.declare_parameter('loop', True)
+        self.declare_parameter('log_each_message', False)
 
         self.scenario = str(self.get_parameter('scenario').value)
         self.rate_hz = float(self.get_parameter('rate_hz').value)
         self.scenario_duration = float(self.get_parameter('scenario_duration_seconds').value)
         self.loop = bool(self.get_parameter('loop').value)
+        self.log_each_message = bool(self.get_parameter('log_each_message').value)
 
         self.publisher = self.create_publisher(
             InteractionFeatures,
@@ -39,13 +41,14 @@ class ScenarioSimulatorNode(Node):
 
         self.current_index = 0
         self.current_scenario_started_at = time.time()
+        self.last_logged_scenario = ''
 
         timer_period = 1.0 / max(self.rate_hz, 0.1)
         self.timer = self.create_timer(timer_period, self.on_timer)
 
         self.get_logger().info(
-            f'Scenario simulator started. scenario={self.scenario}, '
-            f'rate_hz={self.rate_hz}, duration={self.scenario_duration}, loop={self.loop}'
+            f'Scenario simulator started: scenario={self.scenario}, '
+            f'rate_hz={self.rate_hz}, duration={self.scenario_duration}s, loop={self.loop}'
         )
 
     def _build_scenarios(self) -> Dict[str, Dict[str, float | str]]:
@@ -137,9 +140,15 @@ class ScenarioSimulatorNode(Node):
 
         self.publisher.publish(msg)
 
-        self.get_logger().info(
-            f'Published scenario={scenario_name}, score={msg.suspicion_score:.2f}, state={msg.state}'
-        )
+        if self.log_each_message:
+            self.get_logger().info(
+                f'Published scenario={scenario_name}, score={msg.suspicion_score:.2f}, state={msg.state}'
+            )
+        elif scenario_name != self.last_logged_scenario:
+            self.get_logger().info(
+                f'Changed scenario → {scenario_name.upper()} | score={msg.suspicion_score:.2f}, state={msg.state}'
+            )
+            self.last_logged_scenario = scenario_name
 
 
 def main(args=None) -> None:
