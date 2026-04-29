@@ -1,97 +1,28 @@
-# README Demo Section
+# README Demo Section — Cross-Platform Setup
 
-Copy this section into your main `README.md` file.
+Paste this section into the project `README.md` under a heading such as **Demo / Quick Start**.
+
+This project can be demonstrated by all team members on **macOS**, **Windows**, and **Linux**. The recommended team-wide method is **Docker**, because it gives everyone the same Ubuntu + ROS 2 Humble environment.
 
 ---
 
-## Demo: ROS 2 Suspicious Child-Lifting Detection Prototype
+## 1. What the demo does
 
-This demo runs the ROS 2 child-safety monitoring pipeline using a simulated scenario input. It does **not** require a camera yet. The simulator publishes three situations:
+The demo runs three ROS 2 nodes:
+
+| Node | Purpose |
+|---|---|
+| `scenario_simulator_node` | Simulates three detection states: normal, warning, and high alert |
+| `decision_node` | Converts interaction features into warning/high suspicion events |
+| `alert_console_node` | Prints clean demo messages for presentation |
+
+Expected demo cycle:
 
 ```text
-NORMAL  → no suspicious pattern
-WARNING → suspicious interaction pattern
-HIGH    → suspicious child-lifting pattern
+NORMAL → WARNING → HIGH ALERT → NORMAL
 ```
 
-The purpose of this demo is to show that the ROS 2 communication pipeline works:
-
-```text
-scenario_simulator_node
-        ↓ /interaction/features
- decision_node
-        ↓ /suspicion_event
- alert_console_node
-        ↓
- clean terminal alert output
-```
-
-> Important: This project is a prototype for detecting suspicious movement patterns. It does not identify people, prove kidnapping, or infer criminal intent. Any real-world safety system would require human review, privacy controls, and much more testing.
-
----
-
-## Requirements
-
-This project is tested using Docker with ROS 2 Humble.
-
-You need:
-
-- Docker Desktop installed and running
-- Git
-- Internet connection for the first Docker build/run
-- The repository cloned locally
-
-Repository:
-
-```bash
-git clone https://github.com/majidsamadi/ros2-child-safety-monitoring.git
-cd ros2-child-safety-monitoring
-```
-
----
-
-## Running the Demo on macOS with Docker
-
-From the parent folder that contains the repository, run:
-
-```bash
-cd "/Users/samadi/Master AI/Robotics/ROS2"
-
-docker run -it --rm \
-  --name ros2-child-safety-dev \
-  -v "$PWD/ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" \
-  osrf/ros:humble-desktop \
-  bash
-```
-
-Inside the Docker container, run:
-
-```bash
-cd /root/ros2_ws
-source /opt/ros/humble/setup.bash
-apt update
-apt install -y python3-pip python3-colcon-common-extensions ros-humble-vision-msgs
-rm -rf build install log
-colcon build --symlink-install
-source install/setup.bash
-ros2 launch child_safety_monitoring scenario_demo.launch.py
-```
-
----
-
-## Expected Demo Output
-
-When the demo runs successfully, you should see three ROS 2 nodes start:
-
-```text
-decision_node
-scenario_simulator_node
-alert_console_node
-```
-
-Then the simulator cycles through `NORMAL`, `WARNING`, and `HIGH` scenarios.
-
-Expected output example:
+Expected console style:
 
 ```text
 Changed scenario → NORMAL | score=0.10, state=normal
@@ -102,226 +33,327 @@ Changed scenario → WARNING | score=0.62, state=warning
 
 Changed scenario → HIGH | score=0.92, state=high_alert
 [HIGH ALERT] score=0.92 | Suspicious child-lifting pattern detected
-
-Changed scenario → NORMAL | score=0.10, state=normal
-[NORMAL] score=0.10 | No suspicious interaction pattern detected
 ```
 
-This proves that the following flow is working:
+This proves that the current ROS 2 pipeline works:
 
 ```text
-Simulated interaction features → decision logic → readable safety alert
+Simulated interaction features → Decision node → Suspicion event → Console alert
 ```
 
 ---
 
-## Stopping the Demo
+## 2. Recommended setup for the whole team: Docker
 
-Press:
+Use this option for:
 
-```text
-CTRL + C
-```
+- macOS
+- Windows
+- Linux
 
-A clean shutdown should show messages like:
+Docker avoids differences between operating systems because the project runs inside an Ubuntu ROS 2 Humble container.
 
-```text
-process has finished cleanly
-```
+### Required software
 
-Then exit Docker:
+Install Docker first:
+
+- macOS: install Docker Desktop for Mac.
+- Windows: install Docker Desktop for Windows and use the WSL 2 backend.
+- Linux: install Docker Engine or Docker Desktop for Linux.
+
+Official references:
+
+- [ROS 2 Humble installation documentation](https://docs.ros.org/en/humble/Installation.html)
+- [Docker Desktop for Mac](https://docs.docker.com/installation/mac/)
+- [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+- [Docker Desktop WSL 2 backend](https://docs.docker.com/desktop/features/wsl/)
+- [Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
+
+---
+
+## 3. Clone the repository
+
+### macOS / Linux terminal
 
 ```bash
-exit
+git clone https://github.com/majidsamadi/ros2-child-safety-monitoring.git
+cd ros2-child-safety-monitoring
 ```
+
+Then move one folder above the repository before starting Docker:
+
+```bash
+cd ..
+```
+
+You should now be in the parent folder containing:
+
+```text
+ros2-child-safety-monitoring
+```
+
+### Windows PowerShell
+
+Choose a simple folder such as `Documents`:
+
+```powershell
+cd $env:USERPROFILE\Documents
+git clone https://github.com/majidsamadi/ros2-child-safety-monitoring.git
+```
+
+Stay in the parent folder:
+
+```powershell
+cd $env:USERPROFILE\Documents
+```
+
+You should now be in the folder containing:
+
+```text
+ros2-child-safety-monitoring
+```
+
+### Windows WSL 2 Ubuntu terminal
+
+If using WSL 2 Ubuntu, clone the repository inside the WSL home directory:
+
+```bash
+cd ~
+git clone https://github.com/majidsamadi/ros2-child-safety-monitoring.git
+cd ~
+```
+
+Then use the Linux/macOS Docker command below.
 
 ---
 
-## What Each Node Does
+## 4. Start the ROS 2 Docker container
 
-### `scenario_simulator_node`
+### macOS / Linux / WSL 2 Ubuntu
 
-Publishes fake `InteractionFeatures` messages. This allows the team to test the project without a camera.
+Run this from the folder **above** `ros2-child-safety-monitoring`:
 
-Scenarios:
-
-- `normal`: low score, no alert
-- `warning`: medium score, warning alert
-- `high`: high score, high alert
-
-### `decision_node`
-
-Subscribes to:
-
-```text
-/interaction/features
+```bash
+docker run -it --rm \
+  --name ros2-child-safety-dev \
+  -v "$PWD/ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" \
+  osrf/ros:humble-desktop \
+  bash
 ```
 
-Publishes:
+On Apple Silicon Macs, Docker may show a warning like:
 
 ```text
-/suspicion_event
+The requested image's platform (linux/amd64) does not match the detected host platform
 ```
 
-It applies threshold and persistence logic so the system does not jump to a high alert instantly from one frame.
+That warning is acceptable for this class demo. The container may run slower, but the demo should still work.
 
-### `alert_console_node`
+### Windows PowerShell
 
-Subscribes to:
+Run this from the folder **above** `ros2-child-safety-monitoring`:
+
+```powershell
+docker run -it --rm `
+  --name ros2-child-safety-dev `
+  -v "${PWD}\ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" `
+  osrf/ros:humble-desktop `
+  bash
+```
+
+### Windows Command Prompt alternative
+
+```cmd
+docker run -it --rm ^
+  --name ros2-child-safety-dev ^
+  -v "%cd%\ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" ^
+  osrf/ros:humble-desktop ^
+  bash
+```
+
+After this, the terminal should change to something like:
 
 ```text
-/interaction/features
-/suspicion_event
+root@container_id:/#
 ```
 
-It prints clean demo messages such as:
-
-```text
-[NORMAL]
-[WARNING]
-[HIGH ALERT]
-```
-
-This makes the class presentation easier to understand than using raw `ros2 topic echo` output.
+That means you are inside the ROS 2 Docker container.
 
 ---
 
-## Useful Debug Commands
+## 5. Build the project inside Docker
 
-After sourcing the workspace inside Docker:
+Run these commands **inside the Docker container**:
 
 ```bash
 cd /root/ros2_ws
 source /opt/ros/humble/setup.bash
+apt update
+apt install -y python3-pip python3-colcon-common-extensions ros-humble-vision-msgs
+rm -rf build install log
+colcon build --symlink-install
 source install/setup.bash
 ```
 
-Check packages:
+Expected build result:
+
+```text
+Summary: 2 packages finished
+```
+
+Check that ROS 2 can see the packages:
 
 ```bash
 ros2 pkg list | grep child_safety
 ```
 
-Expected:
+Expected output:
 
 ```text
 child_safety_monitoring
 child_safety_msgs
 ```
 
-Check custom interfaces:
+---
+
+## 6. Run the scenario demo
+
+Inside Docker, run:
 
 ```bash
-ros2 interface list | grep child_safety
+ros2 launch child_safety_monitoring scenario_demo.launch.py
 ```
 
-Expected:
+Expected output:
 
 ```text
-child_safety_msgs/msg/InteractionFeatures
-child_safety_msgs/msg/PersonPose2D
-child_safety_msgs/msg/PersonPose2DArray
-child_safety_msgs/msg/SuspicionEvent
-child_safety_msgs/action/StartMonitoring
+Changed scenario → NORMAL | score=0.10, state=normal
+[NORMAL] score=0.10 | No suspicious interaction pattern detected
+
+Changed scenario → WARNING | score=0.62, state=warning
+[WARNING] score=0.62 | Suspicious interaction pattern detected
+
+Changed scenario → HIGH | score=0.92, state=high_alert
+[HIGH ALERT] score=0.92 | Suspicious child-lifting pattern detected
 ```
 
-Check running nodes while the demo is active:
-
-```bash
-ros2 node list
-```
-
-Expected:
+Stop the demo with:
 
 ```text
-/decision_node
-/scenario_simulator_node
-/alert_console_node
+CTRL + C
 ```
 
-Check topics:
-
-```bash
-ros2 topic list
-```
-
-Important topics:
+Expected clean shutdown:
 
 ```text
-/interaction/features
-/suspicion_event
-```
-
-View raw alerts:
-
-```bash
-ros2 topic echo /suspicion_event
+process has finished cleanly
 ```
 
 ---
 
-## Running Individual Scenarios
+## 7. Native Linux option: Ubuntu 22.04 with ROS 2 Humble
 
-You can run only one simulated scenario by passing a parameter.
+Use this only if the Linux teammate already has Ubuntu 22.04 and wants to run ROS 2 directly without Docker.
 
-Example: normal only
+### Install ROS 2 Humble dependencies
 
-```bash
-ros2 run child_safety_monitoring scenario_simulator_node --ros-args -p scenario:=normal
-```
+Follow the official ROS 2 Humble Ubuntu deb installation guide first:
 
-Example: warning only
+- [ROS 2 Humble Ubuntu deb packages](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
 
-```bash
-ros2 run child_safety_monitoring scenario_simulator_node --ros-args -p scenario:=warning
-```
-
-Example: high alert only
+Then install the project build dependencies:
 
 ```bash
-ros2 run child_safety_monitoring scenario_simulator_node --ros-args -p scenario:=high
+sudo apt update
+sudo apt install -y python3-colcon-common-extensions ros-humble-vision-msgs
 ```
 
-The full demo launch file uses:
+### Create a ROS 2 workspace
 
-```text
-scenario = all
+```bash
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+git clone https://github.com/majidsamadi/ros2-child-safety-monitoring.git
 ```
 
-which cycles through:
+### Build and run
 
-```text
-normal → warning → high → normal
+```bash
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+rm -rf build install log
+colcon build --symlink-install
+source install/setup.bash
+ros2 launch child_safety_monitoring scenario_demo.launch.py
 ```
 
 ---
 
-## Troubleshooting
+## 8. Troubleshooting
 
-### `docker: command not found`
+### Problem: `docker: command not found`
 
-Docker Desktop is not installed or not running. Install Docker Desktop and open it before running the demo.
+Docker is not installed, or the terminal was opened before Docker was added to PATH.
 
-### `colcon: command not found`
+Fix:
 
-Inside Docker, install colcon:
+- Install Docker Desktop or Docker Engine.
+- Restart the terminal.
+- Check:
+
+```bash
+docker --version
+```
+
+### Problem: Docker is installed but not running
+
+Check:
+
+```bash
+docker ps
+```
+
+If it fails:
+
+- macOS/Windows: open Docker Desktop and wait until it fully starts.
+- Linux: start Docker service if needed.
+
+### Problem: container name already exists
+
+If you see:
+
+```text
+The container name "ros2-child-safety-dev" is already in use
+```
+
+Run:
+
+```bash
+docker rm -f ros2-child-safety-dev
+```
+
+Then start the container again.
+
+### Problem: `colcon: command not found` inside Docker
+
+Run:
 
 ```bash
 apt update
 apt install -y python3-colcon-common-extensions
 ```
 
-### `Could not find a package configuration file provided by ament_cmake`
+### Problem: `ament_cmake` or ROS packages not found
 
-ROS 2 is not sourced. Run:
+Usually ROS 2 was not sourced.
+
+Run:
 
 ```bash
 source /opt/ros/humble/setup.bash
 ```
 
-### `ros2 pkg list | grep child_safety` shows nothing
-
-Build and source the workspace again:
+Then rebuild:
 
 ```bash
 cd /root/ros2_ws
@@ -330,41 +362,84 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-### The demo prints too many messages
+### Problem: `ros2 launch` cannot find the package
 
-Use the provided launch file:
+You probably forgot to source the workspace:
+
+```bash
+cd /root/ros2_ws
+source install/setup.bash
+```
+
+Then try again:
 
 ```bash
 ros2 launch child_safety_monitoring scenario_demo.launch.py
 ```
 
-The simulator and alert console are configured to print only important state changes.
+### Problem: Windows path or volume mount does not work
+
+Use PowerShell and run Docker from the parent folder of the repository.
+
+Good example:
+
+```powershell
+cd $env:USERPROFILE\Documents
+```
+
+Then run the Windows PowerShell Docker command from this README section.
+
+Avoid very complex paths while debugging, especially paths with unusual characters. Spaces are usually okay when the path is quoted, but simple paths are easier for the first demo.
 
 ---
 
-## Demo Talking Points for Presentation
+## 9. Short explanation for presentation
 
-Use these points when explaining the demo:
+Say this during the demo:
 
-1. The project is a ROS 2 safety-monitoring prototype.
-2. The current demo uses simulated interaction features instead of a camera.
-3. The simulator creates normal, warning, and high-risk movement patterns.
-4. The decision node converts movement features into safety events.
-5. The alert console shows clean, human-readable warnings.
-6. The output is a suspicion level, not proof of intent or identity.
-7. The next development step is connecting real camera pose-estimation output to `/interaction/features`.
+> This is our ROS 2 child-safety monitoring prototype. For the class demo, we are not using a real camera yet. Instead, a scenario simulator publishes fake interaction features for three states: normal, warning, and high alert. The decision node applies threshold and persistence logic, then publishes a suspicion event. The alert console node prints a clean output showing when the system detects normal, warning, or high-alert behavior.
+
+Important framing:
+
+> The system does not prove kidnapping or criminal intent. It only detects suspicious movement patterns such as close contact, lift-like motion, feet-off-ground cues, and rapid limb movement. A real-world system would always require human verification.
 
 ---
 
-## Current Demo Status
+## 10. Current demo command summary
 
-The current repository demo confirms:
+### macOS / Linux / WSL 2 Ubuntu
 
-```text
-✅ ROS 2 packages build successfully
-✅ Custom message interfaces are generated
-✅ Scenario simulator publishes feature messages
-✅ Decision node publishes warning/high events
-✅ Alert console displays clean messages
-✅ CTRL + C shutdown is clean
+```bash
+cd /path/to/parent/folder
+
+docker run -it --rm \
+  --name ros2-child-safety-dev \
+  -v "$PWD/ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" \
+  osrf/ros:humble-desktop \
+  bash
+```
+
+### Windows PowerShell
+
+```powershell
+cd C:\path\to\parent\folder
+
+docker run -it --rm `
+  --name ros2-child-safety-dev `
+  -v "${PWD}\ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" `
+  osrf/ros:humble-desktop `
+  bash
+```
+
+### Inside Docker
+
+```bash
+cd /root/ros2_ws
+source /opt/ros/humble/setup.bash
+apt update
+apt install -y python3-pip python3-colcon-common-extensions ros-humble-vision-msgs
+rm -rf build install log
+colcon build --symlink-install
+source install/setup.bash
+ros2 launch child_safety_monitoring scenario_demo.launch.py
 ```
