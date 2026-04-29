@@ -1,123 +1,370 @@
-# ROS 2 Child Safety Monitoring Prototype
+# README Demo Section
 
-This repository contains a ROS 2 prototype for detecting **suspicious child-lifting interaction patterns** from camera/video input.
+Copy this section into your main `README.md` file.
 
-The project is intentionally framed as a **safety-monitoring prototype**, not as a system that proves kidnapping or criminal intent. It detects a combination of explainable movement cues:
+---
 
-1. sudden close contact between a larger and smaller person candidate,
-2. lifting/upward movement of the smaller person candidate,
-3. feet-off-ground or strong vertical displacement cue,
-4. rapid limb movement that may indicate struggling,
-5. co-movement of the two people while close together.
+## Demo: ROS 2 Suspicious Child-Lifting Detection Prototype
 
-The output is an alert level, suspicion score, and evidence summary for human review.
-
-## Repository structure
+This demo runs the ROS 2 child-safety monitoring pipeline using a simulated scenario input. It does **not** require a camera yet. The simulator publishes three situations:
 
 ```text
-ros2-child-safety-monitoring/
-├── child_safety_msgs/          # ROS 2 custom messages and action
-├── child_safety_monitoring/    # Python ROS 2 package
-├── docs/                       # architecture and project notes
-├── scripts/                    # helper scripts
-├── data/                       # local videos/rosbags/debug clips, ignored by git
-├── requirements.txt
-└── README.md
+NORMAL  → no suspicious pattern
+WARNING → suspicious interaction pattern
+HIGH    → suspicious child-lifting pattern
 ```
 
-## ROS 2 packages
+The purpose of this demo is to show that the ROS 2 communication pipeline works:
 
-### `child_safety_msgs`
-
-Custom interfaces:
-
-- `PersonPose2D.msg`
-- `PersonPose2DArray.msg`
-- `InteractionFeatures.msg`
-- `SuspicionEvent.msg`
-- `StartMonitoring.action`
-
-### `child_safety_monitoring`
-
-Python nodes:
-
-- `video_source_node` — publishes webcam or video file frames to `/camera/image_raw`
-- `pose_estimator_node` — runs YOLO pose and publishes `/poses/raw`
-- `tracker_node` — assigns simple track IDs and smaller/larger candidate roles
-- `interaction_analyzer_node` — calculates contact, lift, struggle, and suspicion features
-- `decision_node` — publishes warning/high alert events
-- `visualization_node` — draws boxes, keypoints, and alert status on `/annotated_image`
-
-## Recommended environment
-
-Use Ubuntu with ROS 2 Humble or Jazzy. For class/lab work, ROS 2 Humble on Ubuntu 22.04 is usually a stable option.
-
-The first implementation uses a webcam or recorded video. RGB-D support can be added later.
-
-## Install dependencies
-
-```bash
-python3 -m pip install -r requirements.txt
-
-sudo apt update
-sudo apt install -y \
-  python3-colcon-common-extensions \
-  ros-$ROS_DISTRO-cv-bridge \
-  ros-$ROS_DISTRO-vision-msgs \
-  ros-$ROS_DISTRO-rqt-image-view
+```text
+scenario_simulator_node
+        ↓ /interaction/features
+ decision_node
+        ↓ /suspicion_event
+ alert_console_node
+        ↓
+ clean terminal alert output
 ```
 
-## Build
+> Important: This project is a prototype for detecting suspicious movement patterns. It does not identify people, prove kidnapping, or infer criminal intent. Any real-world safety system would require human review, privacy controls, and much more testing.
+
+---
+
+## Requirements
+
+This project is tested using Docker with ROS 2 Humble.
+
+You need:
+
+- Docker Desktop installed and running
+- Git
+- Internet connection for the first Docker build/run
+- The repository cloned locally
+
+Repository:
 
 ```bash
-source /opt/ros/$ROS_DISTRO/setup.bash
-colcon build
+git clone https://github.com/majidsamadi/ros2-child-safety-monitoring.git
+cd ros2-child-safety-monitoring
+```
+
+---
+
+## Running the Demo on macOS with Docker
+
+From the parent folder that contains the repository, run:
+
+```bash
+cd "/Users/samadi/Master AI/Robotics/ROS2"
+
+docker run -it --rm \
+  --name ros2-child-safety-dev \
+  -v "$PWD/ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" \
+  osrf/ros:humble-desktop \
+  bash
+```
+
+Inside the Docker container, run:
+
+```bash
+cd /root/ros2_ws
+source /opt/ros/humble/setup.bash
+apt update
+apt install -y python3-pip python3-colcon-common-extensions ros-humble-vision-msgs
+rm -rf build install log
+colcon build --symlink-install
+source install/setup.bash
+ros2 launch child_safety_monitoring scenario_demo.launch.py
+```
+
+---
+
+## Expected Demo Output
+
+When the demo runs successfully, you should see three ROS 2 nodes start:
+
+```text
+decision_node
+scenario_simulator_node
+alert_console_node
+```
+
+Then the simulator cycles through `NORMAL`, `WARNING`, and `HIGH` scenarios.
+
+Expected output example:
+
+```text
+Changed scenario → NORMAL | score=0.10, state=normal
+[NORMAL] score=0.10 | No suspicious interaction pattern detected
+
+Changed scenario → WARNING | score=0.62, state=warning
+[WARNING] score=0.62 | Suspicious interaction pattern detected
+
+Changed scenario → HIGH | score=0.92, state=high_alert
+[HIGH ALERT] score=0.92 | Suspicious child-lifting pattern detected
+
+Changed scenario → NORMAL | score=0.10, state=normal
+[NORMAL] score=0.10 | No suspicious interaction pattern detected
+```
+
+This proves that the following flow is working:
+
+```text
+Simulated interaction features → decision logic → readable safety alert
+```
+
+---
+
+## Stopping the Demo
+
+Press:
+
+```text
+CTRL + C
+```
+
+A clean shutdown should show messages like:
+
+```text
+process has finished cleanly
+```
+
+Then exit Docker:
+
+```bash
+exit
+```
+
+---
+
+## What Each Node Does
+
+### `scenario_simulator_node`
+
+Publishes fake `InteractionFeatures` messages. This allows the team to test the project without a camera.
+
+Scenarios:
+
+- `normal`: low score, no alert
+- `warning`: medium score, warning alert
+- `high`: high score, high alert
+
+### `decision_node`
+
+Subscribes to:
+
+```text
+/interaction/features
+```
+
+Publishes:
+
+```text
+/suspicion_event
+```
+
+It applies threshold and persistence logic so the system does not jump to a high alert instantly from one frame.
+
+### `alert_console_node`
+
+Subscribes to:
+
+```text
+/interaction/features
+/suspicion_event
+```
+
+It prints clean demo messages such as:
+
+```text
+[NORMAL]
+[WARNING]
+[HIGH ALERT]
+```
+
+This makes the class presentation easier to understand than using raw `ros2 topic echo` output.
+
+---
+
+## Useful Debug Commands
+
+After sourcing the workspace inside Docker:
+
+```bash
+cd /root/ros2_ws
+source /opt/ros/humble/setup.bash
 source install/setup.bash
 ```
 
-## Run webcam demo
+Check packages:
 
 ```bash
-source install/setup.bash
-ros2 launch child_safety_monitoring demo_webcam.launch.py
+ros2 pkg list | grep child_safety
 ```
 
-View annotated output:
+Expected:
+
+```text
+child_safety_monitoring
+child_safety_msgs
+```
+
+Check custom interfaces:
 
 ```bash
-rqt_image_view /annotated_image
+ros2 interface list | grep child_safety
 ```
 
-Watch alerts:
+Expected:
+
+```text
+child_safety_msgs/msg/InteractionFeatures
+child_safety_msgs/msg/PersonPose2D
+child_safety_msgs/msg/PersonPose2DArray
+child_safety_msgs/msg/SuspicionEvent
+child_safety_msgs/action/StartMonitoring
+```
+
+Check running nodes while the demo is active:
+
+```bash
+ros2 node list
+```
+
+Expected:
+
+```text
+/decision_node
+/scenario_simulator_node
+/alert_console_node
+```
+
+Check topics:
+
+```bash
+ros2 topic list
+```
+
+Important topics:
+
+```text
+/interaction/features
+/suspicion_event
+```
+
+View raw alerts:
 
 ```bash
 ros2 topic echo /suspicion_event
 ```
 
-## Run video-file demo
+---
+
+## Running Individual Scenarios
+
+You can run only one simulated scenario by passing a parameter.
+
+Example: normal only
 
 ```bash
-source install/setup.bash
-ros2 launch child_safety_monitoring demo_video.launch.py video_path:=/absolute/path/to/video.mp4
+ros2 run child_safety_monitoring scenario_simulator_node --ros-args -p scenario:=normal
 ```
 
-## Safety and ethics rules
+Example: warning only
 
-- Use consenting adults, mannequins, staged safe movements, or simulation.
-- Do not collect real videos of minors for the first demo.
-- Do not identify faces or people.
-- Do not claim the system proves kidnapping or intent.
-- Treat all alerts as signals for human review only.
-- Avoid storing raw video unless needed for debugging and consent has been obtained.
+```bash
+ros2 run child_safety_monitoring scenario_simulator_node --ros-args -p scenario:=warning
+```
 
-## Current implementation level
+Example: high alert only
 
-This is the initial working repository scaffold. The core ROS 2 architecture, messages, launch files, and first-pass detection logic are included.
+```bash
+ros2 run child_safety_monitoring scenario_simulator_node --ros-args -p scenario:=high
+```
 
-Next steps:
+The full demo launch file uses:
 
-1. run the webcam pipeline,
-2. verify YOLO pose output,
-3. tune thresholds in `child_safety_monitoring/config/detection_params.yaml`,
-4. record short safe acted clips,
-5. evaluate false positives and detection delay.
+```text
+scenario = all
+```
+
+which cycles through:
+
+```text
+normal → warning → high → normal
+```
+
+---
+
+## Troubleshooting
+
+### `docker: command not found`
+
+Docker Desktop is not installed or not running. Install Docker Desktop and open it before running the demo.
+
+### `colcon: command not found`
+
+Inside Docker, install colcon:
+
+```bash
+apt update
+apt install -y python3-colcon-common-extensions
+```
+
+### `Could not find a package configuration file provided by ament_cmake`
+
+ROS 2 is not sourced. Run:
+
+```bash
+source /opt/ros/humble/setup.bash
+```
+
+### `ros2 pkg list | grep child_safety` shows nothing
+
+Build and source the workspace again:
+
+```bash
+cd /root/ros2_ws
+rm -rf build install log
+colcon build --symlink-install
+source install/setup.bash
+```
+
+### The demo prints too many messages
+
+Use the provided launch file:
+
+```bash
+ros2 launch child_safety_monitoring scenario_demo.launch.py
+```
+
+The simulator and alert console are configured to print only important state changes.
+
+---
+
+## Demo Talking Points for Presentation
+
+Use these points when explaining the demo:
+
+1. The project is a ROS 2 safety-monitoring prototype.
+2. The current demo uses simulated interaction features instead of a camera.
+3. The simulator creates normal, warning, and high-risk movement patterns.
+4. The decision node converts movement features into safety events.
+5. The alert console shows clean, human-readable warnings.
+6. The output is a suspicion level, not proof of intent or identity.
+7. The next development step is connecting real camera pose-estimation output to `/interaction/features`.
+
+---
+
+## Current Demo Status
+
+The current repository demo confirms:
+
+```text
+✅ ROS 2 packages build successfully
+✅ Custom message interfaces are generated
+✅ Scenario simulator publishes feature messages
+✅ Decision node publishes warning/high events
+✅ Alert console displays clean messages
+✅ CTRL + C shutdown is clean
+```
