@@ -29,6 +29,7 @@ setup(
             'interaction_analyzer_node = child_safety_monitoring.nodes.interaction_analyzer_node:main',
             'decision_node = child_safety_monitoring.nodes.decision_node:main',
             'visualization_node = child_safety_monitoring.nodes.visualization_node:main',
+            'scenario_simulator_node = child_safety_monitoring.nodes.scenario_simulator_node:main',
         ],
     },
 )
