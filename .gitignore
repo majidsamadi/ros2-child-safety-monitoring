@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ROS / colcon
+build/
+install/
+log/
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Data outputs
+data/debug_clips/*
+data/rosbags/*
+data/videos/*
+
+!data/debug_clips/.gitkeep
+!data/rosbags/.gitkeep
+!data/videos/.gitkeep
