@@ -23,6 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'cctv_stream_node = child_safety_monitoring.nodes.cctv_stream_node:main',
             'video_source_node = child_safety_monitoring.nodes.video_source_node:main',
             'pose_estimator_node = child_safety_monitoring.nodes.pose_estimator_node:main',
             'tracker_node = child_safety_monitoring.nodes.tracker_node:main',
@@ -31,6 +32,7 @@ setup(
             'visualization_node = child_safety_monitoring.nodes.visualization_node:main',
             'scenario_simulator_node = child_safety_monitoring.nodes.scenario_simulator_node:main',
             'alert_console_node = child_safety_monitoring.nodes.alert_console_node:main',
+            'alarm_node = child_safety_monitoring.nodes.alarm_node:main',
         ],
     },
 )

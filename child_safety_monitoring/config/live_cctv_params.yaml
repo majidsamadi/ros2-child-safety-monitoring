@@ -1,0 +1,43 @@
+cctv_stream_node:
+  ros__parameters:
+    image_topic: /camera/image_raw
+    camera_frame_id: cctv_camera
+    publish_rate_hz: 12.0
+    resize_width: 960
+    resize_height: 540
+    reconnect_delay_seconds: 2.0
+    buffer_size: 1
+
+pose_estimator_node:
+  ros__parameters:
+    model_path: yolo11n-pose.pt
+    confidence_threshold: 0.35
+    keypoint_confidence_threshold: 0.25
+    image_topic: /camera/image_raw
+    raw_pose_topic: /poses/raw
+    publish_annotated: true
+    annotated_image_topic: /camera/pose_overlay
+    device: cpu
+    frame_skip: 0
+
+tracker_node:
+  ros__parameters:
+    raw_pose_topic: /poses/raw
+    tracked_pose_topic: /poses/tracked
+    max_distance_px: 140.0
+    max_missed_frames: 10
+    min_people_required: 2
+
+interaction_analyzer_node:
+  ros__parameters:
+    history_window_seconds: 1.25
+    contact_distance_threshold_norm: 1.0
+    lift_velocity_threshold_norm_per_sec: 0.45
+    feet_off_ground_threshold_norm: 0.18
+    limb_speed_low_norm_per_sec: 1.20
+    limb_speed_high_norm_per_sec: 2.30
+    limb_accel_low_norm_per_sec2: 3.50
+    limb_accel_high_norm_per_sec2: 7.50
+    co_motion_threshold: 0.30
+    score_warning_threshold: 0.55
+    score_high_threshold: 0.75
