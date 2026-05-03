@@ -31,3 +31,21 @@ data/videos/*
 !data/debug_clips/.gitkeep
 !data/rosbags/.gitkeep
 !data/videos/.gitkeep
+# ROS / colcon build outputs
+
+# Python cache
+*.egg-info/
+
+__MACOSX/
+
+# Downloaded model weights
+*.pt
+
+# Local secrets / environment files
+.env
+*.env
+
+# Temporary helper patch scripts
+implement_live_cctv_pipeline.py
+repo_review_patch*.py
+cleanup_repo_from_parent.py

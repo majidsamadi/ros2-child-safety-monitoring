@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import argparse
+import platform
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Optional
 
 import cv2
 
 
-latest_jpeg = None
+latest_jpeg: Optional[bytes] = None
 
 
 class WebcamHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         global latest_jpeg
 
-        if self.path == "/" or self.path == "/health":
+        if self.path in ("/", "/health"):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b"Webcam streamer is running. Open /video\n")
@@ -48,24 +52,50 @@ class WebcamHandler(BaseHTTPRequestHandler):
         return
 
 
+def open_camera(camera_index: int, backend: str):
+    if backend == "avfoundation":
+        return cv2.VideoCapture(camera_index, cv2.CAP_AVFOUNDATION)
+    if backend == "dshow":
+        return cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+    if backend == "v4l2":
+        return cv2.VideoCapture(camera_index, cv2.CAP_V4L2)
+    if backend == "auto":
+        if platform.system() == "Darwin":
+            return cv2.VideoCapture(camera_index, cv2.CAP_AVFOUNDATION)
+        return cv2.VideoCapture(camera_index)
+    return cv2.VideoCapture(camera_index)
+
+
 def main():
     global latest_jpeg
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Stream the host laptop webcam as MJPEG for Docker/ROS.")
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8090)
     parser.add_argument("--width", type=int, default=640)
     parser.add_argument("--height", type=int, default=480)
     parser.add_argument("--fps", type=int, default=15)
+    parser.add_argument(
+        "--backend",
+        choices=["auto", "avfoundation", "dshow", "v4l2", "default"],
+        default="auto",
+        help="Camera backend. auto uses AVFoundation on macOS.",
+    )
     args = parser.parse_args()
 
-    cap = cv2.VideoCapture(args.camera)
+    cap = open_camera(args.camera, args.backend)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
     cap.set(cv2.CAP_PROP_FPS, args.fps)
 
     if not cap.isOpened():
+        print("\nCould not open the laptop camera.")
+        print("Try these checks:")
+        print("  1. Make sure no other app is using the camera.")
+        print("  2. On macOS, run this from VS Code terminal if VS Code has Camera permission.")
+        print("  3. Try another camera index: --camera 1")
+        print("  4. Try explicit macOS backend: --backend avfoundation")
         raise RuntimeError(f"Could not open laptop camera index {args.camera}")
 
     server = ThreadingHTTPServer((args.host, args.port), WebcamHandler)
@@ -87,7 +117,7 @@ def main():
     try:
         while True:
             ok, frame = cap.read()
-            if not ok:
+            if not ok or frame is None:
                 print("Could not read frame from camera.")
                 time.sleep(0.2)
                 continue

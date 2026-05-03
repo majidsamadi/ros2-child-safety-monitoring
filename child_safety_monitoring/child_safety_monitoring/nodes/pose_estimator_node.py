@@ -141,8 +141,20 @@ class PoseEstimatorNode(Node):
                 self.get_logger().warn(f'Could not publish annotated image: {exc}')
 
     @staticmethod
-    def _torso_len(person: PersonPose2D) -> float:
+    def _is_visible(person: PersonPose2D, index: int) -> bool:
+        return (
+            index < len(person.keypoints_xy)
+            and index < len(person.visible)
+            and bool(person.visible[index])
+        )
+
+    @classmethod
+    def _torso_len(cls, person: PersonPose2D) -> float:
         try:
+            needed = [LEFT_SHOULDER, RIGHT_SHOULDER, LEFT_HIP, RIGHT_HIP]
+            if not all(cls._is_visible(person, idx) for idx in needed):
+                return max(float(person.bbox.height) * 0.35, 1.0)
+
             sy = (person.keypoints_xy[LEFT_SHOULDER].y + person.keypoints_xy[RIGHT_SHOULDER].y) / 2.0
             hy = (person.keypoints_xy[LEFT_HIP].y + person.keypoints_xy[RIGHT_HIP].y) / 2.0
             return max(abs(hy - sy), 1.0)

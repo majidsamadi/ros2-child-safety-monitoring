@@ -443,3 +443,29 @@ colcon build --symlink-install
 source install/setup.bash
 ros2 launch child_safety_monitoring scenario_demo.launch.py
 ```
+
+
+---
+
+## Laptop camera live demo
+
+For the current class demo, the laptop webcam is streamed from the host machine and read by Docker:
+
+```text
+Laptop webcam -> scripts/host_webcam_streamer.py -> http://host.docker.internal:8090/video -> ROS pipeline
+```
+
+Run the webcam streamer on the host laptop first:
+
+```bash
+python3 scripts/host_webcam_streamer.py --camera 0 --port 8090
+```
+
+Then run the live ROS pipeline inside Docker:
+
+```bash
+ros2 launch child_safety_monitoring live_laptop_camera_demo.launch.py \
+  stream_url:='http://host.docker.internal:8090/video'
+```
+
+The old `live_cctv_demo.launch.py` file is kept as a compatibility alias, but the laptop-camera launch name is clearer for our project.

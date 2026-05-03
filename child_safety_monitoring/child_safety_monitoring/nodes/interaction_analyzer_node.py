@@ -146,20 +146,38 @@ class InteractionAnalyzerNode(Node):
         }
 
     @staticmethod
-    def _point(pose: PersonPose2D, index: int) -> Point2:
-        if index >= len(pose.keypoints_xy):
+    def _is_visible(pose: PersonPose2D, index: int) -> bool:
+        return (
+            index < len(pose.keypoints_xy)
+            and index < len(pose.visible)
+            and bool(pose.visible[index])
+        )
+
+    def _point(self, pose: PersonPose2D, index: int) -> Point2:
+        if not self._is_visible(pose, index):
             return bbox_center(pose.bbox.x_offset, pose.bbox.y_offset, pose.bbox.width, pose.bbox.height)
         p: Point32 = pose.keypoints_xy[index]
         return Point2(p.x, p.y)
 
     def _torso_center(self, pose: PersonPose2D) -> Point2:
-        pts = [self._point(pose, i) for i in [LEFT_SHOULDER, RIGHT_SHOULDER, LEFT_HIP, RIGHT_HIP]]
+        pts = [
+            self._point(pose, i)
+            for i in [LEFT_SHOULDER, RIGHT_SHOULDER, LEFT_HIP, RIGHT_HIP]
+            if self._is_visible(pose, i)
+        ]
+        if not pts:
+            return bbox_center(pose.bbox.x_offset, pose.bbox.y_offset, pose.bbox.width, pose.bbox.height)
         return Point2(safe_mean([p.x for p in pts]), safe_mean([p.y for p in pts]))
 
     def _ankle_y(self, pose: PersonPose2D) -> Optional[float]:
-        if len(pose.keypoints_xy) <= RIGHT_ANKLE:
+        ankle_values = [
+            self._point(pose, idx).y
+            for idx in [LEFT_ANKLE, RIGHT_ANKLE]
+            if self._is_visible(pose, idx)
+        ]
+        if not ankle_values:
             return None
-        return max(self._point(pose, LEFT_ANKLE).y, self._point(pose, RIGHT_ANKLE).y)
+        return max(ankle_values)
 
     def _update_floor_proxy(self, pose: PersonPose2D) -> None:
         if not pose.track_id:
@@ -203,7 +221,13 @@ class InteractionAnalyzerNode(Node):
 
         speeds, accels = [], []
         for idx in LIMB_MOTION_JOINTS:
-            samples = [(s.stamp_sec, self._point(s.pose, idx)) for s in h]
+            samples = [
+                (s.stamp_sec, self._point(s.pose, idx))
+                for s in h
+                if self._is_visible(s.pose, idx)
+            ]
+            if len(samples) < 2:
+                continue
             joint_speeds = []
             for (t1, p1), (t2, p2) in zip(samples, samples[1:]):
                 joint_speeds.append(

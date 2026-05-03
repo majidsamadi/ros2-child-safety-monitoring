@@ -48,7 +48,23 @@ def main(args=None) -> None:
     node = VideoSourceNode()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
-        node.cap.release()
-        node.destroy_node()
-        rclpy.shutdown()
+        try:
+            node.cap.release()
+        except Exception:
+            pass
+        try:
+            node.destroy_node()
+        except Exception:
+            pass
+        try:
+            if rclpy.ok():
+                rclpy.shutdown()
+        except Exception:
+            pass
+
+
+if __name__ == '__main__':
+    main()
