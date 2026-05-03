@@ -6,30 +6,12 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     stream_url = LaunchConfiguration('stream_url')
-    model_path = LaunchConfiguration('model_path')
-    device = LaunchConfiguration('device')
-    publish_rate_hz = LaunchConfiguration('publish_rate_hz')
 
     return LaunchDescription([
         DeclareLaunchArgument(
             'stream_url',
-            default_value='',
-            description='Camera stream URL. For laptop webcam streamer use: http://host.docker.internal:8090/video',
-        ),
-        DeclareLaunchArgument(
-            'model_path',
-            default_value='yolo11n-pose.pt',
-            description='YOLO pose model path/name.',
-        ),
-        DeclareLaunchArgument(
-            'device',
-            default_value='cpu',
-            description='YOLO device, e.g. cpu, cuda, cuda:0.',
-        ),
-        DeclareLaunchArgument(
-            'publish_rate_hz',
-            default_value='12.0',
-            description='Camera frame publish rate.',
+            default_value='http://host.docker.internal:8090/video',
+            description='Laptop webcam stream URL from host_webcam_streamer.py',
         ),
 
         Node(
@@ -39,29 +21,30 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'stream_url': stream_url,
-                'publish_rate_hz': publish_rate_hz,
                 'image_topic': '/camera/image_raw',
-                'resize_width': 960,
-                'resize_height': 540,
-                'buffer_size': 1,
+                'camera_frame_id': 'laptop_camera',
+                'publish_rate_hz': 15.0,
             }],
         ),
+
         Node(
             package='child_safety_monitoring',
             executable='pose_estimator_node',
             name='pose_estimator_node',
             output='screen',
             parameters=[{
-                'model_path': model_path,
-                'device': device,
-                'confidence_threshold': 0.35,
                 'image_topic': '/camera/image_raw',
                 'raw_pose_topic': '/poses/raw',
-                'publish_annotated': True,
                 'annotated_image_topic': '/camera/pose_overlay',
+                'publish_annotated': True,
+                'model_path': 'yolo11n-pose.pt',
+                'confidence_threshold': 0.35,
+                'device': 'cpu',
                 'frame_skip': 0,
+                'keypoint_confidence_threshold': 0.25,
             }],
         ),
+
         Node(
             package='child_safety_monitoring',
             executable='tracker_node',
@@ -70,28 +53,35 @@ def generate_launch_description():
             parameters=[{
                 'raw_pose_topic': '/poses/raw',
                 'tracked_pose_topic': '/poses/tracked',
-                'max_distance_px': 140.0,
-                'max_missed_frames': 10,
+                'min_people_required': 2,
             }],
         ),
+
         Node(
             package='child_safety_monitoring',
             executable='interaction_analyzer_node',
             name='interaction_analyzer_node',
             output='screen',
+            parameters=[{
+                'tracked_pose_topic': '/poses/tracked',
+                'features_topic': '/interaction/features',
+            }],
         ),
+
         Node(
             package='child_safety_monitoring',
             executable='decision_node',
             name='decision_node',
             output='screen',
         ),
+
         Node(
             package='child_safety_monitoring',
             executable='alert_console_node',
             name='alert_console_node',
             output='screen',
         ),
+
         Node(
             package='child_safety_monitoring',
             executable='alarm_node',
