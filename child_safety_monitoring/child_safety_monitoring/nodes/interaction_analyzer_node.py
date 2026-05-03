@@ -53,6 +53,8 @@ class InteractionAnalyzerNode(Node):
         self.contact_threshold = float(self.get_parameter('contact_distance_threshold_norm').value)
         self.lift_velocity_threshold = float(self.get_parameter('lift_velocity_threshold_norm_per_sec').value)
         self.feet_off_ground_threshold = float(self.get_parameter('feet_off_ground_threshold_norm').value)
+        self.feet_requires_lift_score = float(self.get_parameter('feet_requires_lift_score').value)
+        self.feet_without_lift_cap = float(self.get_parameter('feet_without_lift_cap').value)
         self.limb_speed_low = float(self.get_parameter('limb_speed_low_norm_per_sec').value)
         self.limb_speed_high = float(self.get_parameter('limb_speed_high_norm_per_sec').value)
         self.limb_accel_low = float(self.get_parameter('limb_accel_low_norm_per_sec2').value)
@@ -125,7 +127,16 @@ class InteractionAnalyzerNode(Node):
         contact = 1.0 if dist_norm <= self.contact_threshold else 0.0
         wrap = 1.0 if dist_norm < 0.7 else 0.5 if dist_norm < 1.2 else 0.0
         lift = self._lift_score(child)
-        feet = self._feet_off_ground_proxy(child)
+        raw_feet = self._feet_off_ground_proxy(child)
+
+        # Feet/ankle keypoints can be unreliable with laptop cameras when legs are
+        # partly out of frame. Do not let feet_off_ground dominate unless the
+        # child candidate is also moving upward.
+        if lift >= self.feet_requires_lift_score:
+            feet = raw_feet
+        else:
+            feet = min(raw_feet, self.feet_without_lift_cap)
+
         limb_speed, limb_accel = self._limb_motion_scores(child)
         comotion = self._co_motion_score(child, adult)
 
