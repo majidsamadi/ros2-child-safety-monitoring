@@ -53,6 +53,8 @@ class InteractionAnalyzerNode(Node):
         self.contact_threshold = float(self.get_parameter('contact_distance_threshold_norm').value)
         self.lift_velocity_threshold = float(self.get_parameter('lift_velocity_threshold_norm_per_sec').value)
         self.feet_off_ground_threshold = float(self.get_parameter('feet_off_ground_threshold_norm').value)
+        self.declare_parameter('feet_requires_lift_score', 0.20)
+        self.declare_parameter('feet_without_lift_cap', 0.15)
         self.feet_requires_lift_score = float(self.get_parameter('feet_requires_lift_score').value)
         self.feet_without_lift_cap = float(self.get_parameter('feet_without_lift_cap').value)
         self.limb_speed_low = float(self.get_parameter('limb_speed_low_norm_per_sec').value)
