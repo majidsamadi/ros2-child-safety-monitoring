@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 cd /root/ros2_ws
 source /opt/ros/humble/setup.bash
