@@ -1,8 +1,8 @@
 # ROS 2 Child Safety Monitoring Prototype
 
-This repository contains a ROS 2 prototype for detecting suspicious child-safety interaction patterns from a **live laptop camera stream**.
+This project is a ROS 2 prototype for detecting suspicious child-safety interaction patterns using a **live laptop camera**.
 
-The current live pipeline is:
+The current project pipeline is:
 
 ```text
 Laptop camera
@@ -15,19 +15,17 @@ Laptop camera
     -> alert / alarm output
 ```
 
-The project also includes a simulator demo. The simulator is useful for showing `NORMAL`, `WARNING`, and `HIGH ALERT` behavior without asking anyone to perform risky actions.
+The project also includes a simulator demo for showing `NORMAL`, `WARNING`, and `HIGH ALERT` behavior without unsafe acting.
 
----
+## Current status
 
-## Current project status
-
-Working so far:
+Working:
 
 ```text
-✅ Docker + ROS 2 Humble environment works
-✅ Laptop camera stream works from the host machine
-✅ Docker can read the laptop camera stream
-✅ YOLO pose overlay can be viewed in the browser
+✅ Docker + ROS 2 Humble environment
+✅ Laptop camera stream from the host machine
+✅ Docker reads the laptop camera stream
+✅ YOLO pose overlay in browser
 ✅ /poses/raw publishes pose detections
 ✅ /poses/tracked publishes tracked people
 ✅ /interaction/features publishes interaction features
@@ -36,15 +34,11 @@ Working so far:
 ✅ Simulator demo produces NORMAL -> WARNING -> HIGH ALERT
 ```
 
-The live laptop-camera pipeline is working for normal behavior and feature extraction. The high-alert behavior is still best demonstrated with the simulator while live detection thresholds are tuned.
+## Safety note
 
----
+Do **not** test by lifting a real child or doing risky acting.
 
-## Important safety note
-
-Do **not** test the system by lifting a real child or doing risky acting.
-
-For live tests, use safe actions only:
+Safe live tests:
 
 ```text
 - two people standing far apart
@@ -52,255 +46,91 @@ For live tests, use safe actions only:
 - one person raising arms near another person without touching or lifting
 ```
 
-Use the simulator demo to show the warning/high-alert logic.
-
-This project is a **prototype for suspicious motion detection**. It is not proof of kidnapping or harm.
-
----
+Use the simulator demo to show warning and high-alert behavior.
 
 ## Repository structure
 
 ```text
 child_safety_msgs/
-  msg/                      # Custom ROS messages
-  action/                   # Custom ROS action
+  msg/                                  # Custom ROS messages
 
 child_safety_monitoring/
-  child_safety_monitoring/
-    nodes/
-      cctv_stream_node.py              # Generic video-stream reader node
-      pose_estimator_node.py           # YOLO pose node
-      tracker_node.py                  # Person tracking node
-      interaction_analyzer_node.py     # Calculates interaction features
-      decision_node.py                 # Converts features into warning/high alerts
-      alert_console_node.py            # Clean terminal output
-      alarm_node.py                    # Alarm state output
-      scenario_simulator_node.py       # Backup simulator demo
-      video_source_node.py             # Older/local video source helper
-      visualization_node.py            # Older visualization helper
+  child_safety_monitoring/nodes/
+    cctv_stream_node.py                 # Generic stream reader node
+    pose_estimator_node.py              # YOLO pose node
+    tracker_node.py                     # Person tracking node
+    interaction_analyzer_node.py        # Calculates interaction features
+    decision_node.py                    # Converts features to warning/high events
+    alert_console_node.py               # Clean terminal alert output
+    alarm_node.py                       # Alarm state output
+    scenario_simulator_node.py          # Backup simulator demo
 
   launch/
-    live_laptop_camera_demo.launch.py  # Main live laptop-camera demo
-    live_cctv_demo.launch.py           # Older/generic stream launch
-    scenario_demo.launch.py            # Backup simulator launch
+    live_laptop_camera_demo.launch.py   # Main live laptop-camera demo
+    scenario_demo.launch.py             # Backup simulator demo
 
 scripts/
-  host_webcam_streamer.py              # Runs outside Docker and streams laptop camera
-
-requirements.txt
-README.md
+  host_webcam_streamer.py               # Runs outside Docker
+  run_webcam_streamer.sh                # Host helper script
+  run_docker_dev.sh                     # Starts Docker container
+  docker_setup_workspace.sh             # Installs deps and builds inside Docker
+  run_laptop_camera_demo.sh             # Runs live laptop camera launch
+  run_pose_overlay_server.sh            # Starts browser overlay server
+  check_live_pipeline.sh                # Quick ROS topic checks
+  run_simulator_demo.sh                 # Runs simulator demo
 ```
 
-Naming note: `cctv_stream_node.py` has a CCTV-style name, but in the current laptop demo it is used as a generic stream reader. It reads this host stream:
+Note: `cctv_stream_node.py` has an old CCTV-style name, but it is currently used as a **generic video stream reader**. For laptop camera demo it reads:
 
 ```text
 http://host.docker.internal:8090/video
 ```
 
----
+## Quick run: live laptop-camera demo
 
-## Main live pipeline
+Use 4 terminals.
 
-```text
-scripts/host_webcam_streamer.py
-        ↓
-http://host.docker.internal:8090/video
-        ↓
-cctv_stream_node
-        ↓
-/camera/image_raw
-        ↓
-pose_estimator_node
-        ↓
-/poses/raw
-        ↓
-tracker_node
-        ↓
-/poses/tracked
-        ↓
-interaction_analyzer_node
-        ↓
-/interaction/features
-        ↓
-decision_node
-        ↓
-/suspicion_event
-        ↓
-alert_console_node + alarm_node
-```
-
----
-
-## Prerequisites
-
-You need:
-
-```text
-Docker Desktop or Docker Engine
-Python 3 on the host laptop
-A working laptop camera
-```
-
-For macOS users, run the webcam streamer from an app that has camera permission. VS Code Terminal worked during our testing. Camera permission is found in:
-
-```text
-System Settings -> Privacy & Security -> Camera
-```
-
----
-
-## Path convention used below
-
-Do **not** copy a personal path from another teammate.
-
-Use these placeholders:
-
-```text
-/path/to/ros2-child-safety-monitoring
-/path/to/parent/folder/of/ros2-child-safety-monitoring
-```
-
-Example:
-
-```text
-If the repo is here:
-/Users/alex/Robotics/ros2-child-safety-monitoring
-
-Then the parent folder is:
-/Users/alex/Robotics
-```
-
----
-
-# Running the live laptop-camera demo
-
-Use four terminals.
-
----
-
-## Terminal 1: start the laptop webcam streamer
+### Terminal 1: host laptop webcam stream
 
 Run this **outside Docker**.
 
-### macOS / Linux
+On macOS, use a terminal app that has camera permission, such as VS Code terminal.
 
 ```bash
-cd /path/to/ros2-child-safety-monitoring
-
-python3 -m pip install --user "opencv-python==4.10.0.84" "numpy==1.26.4"
-python3 scripts/host_webcam_streamer.py --camera 0 --port 8090
+cd path/to/ros2-child-safety-monitoring
+./scripts/run_webcam_streamer.sh
 ```
 
-### Windows PowerShell
-
-```powershell
-cd C:\path\to\ros2-child-safety-monitoring
-
-py -m pip install --user "opencv-python==4.10.0.84" "numpy==1.26.4"
-py scripts\host_webcam_streamer.py --camera 0 --port 8090
-```
-
-Keep this terminal open.
-
-Check the raw laptop camera stream in a browser:
+Open this in browser:
 
 ```text
 http://127.0.0.1:8090/video
 ```
 
-If camera index `0` does not work, try:
+Keep Terminal 1 running.
+
+### Terminal 2: Docker + ROS pipeline
+
+Run this from the repo root, outside Docker:
 
 ```bash
-python3 scripts/host_webcam_streamer.py --camera 1 --port 8090
+cd path/to/ros2-child-safety-monitoring
+./scripts/run_docker_dev.sh
 ```
 
-On Windows PowerShell:
-
-```powershell
-py scripts\host_webcam_streamer.py --camera 1 --port 8090
-```
-
----
-
-## Terminal 2: start Docker and run the live ROS pipeline
-
-Run this from the **parent folder** of the repo.
-
-### macOS / Linux
-
-```bash
-cd /path/to/parent/folder/of/ros2-child-safety-monitoring
-
-docker rm -f ros2-child-safety-dev 2>/dev/null || true
-
-docker run -it --rm \
-  --name ros2-child-safety-dev \
-  -p 8080:8080 \
-  -v "$PWD/ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" \
-  osrf/ros:humble-desktop \
-  bash
-```
-
-### Windows PowerShell
-
-```powershell
-cd C:\path\to\parent\folder\of\ros2-child-safety-monitoring
-
-docker rm -f ros2-child-safety-dev 2>$null
-
-docker run -it --rm `
-  --name ros2-child-safety-dev `
-  -p 8080:8080 `
-  -v "$($PWD.Path)\ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" `
-  osrf/ros:humble-desktop `
-  bash
-```
-
-After this, you are inside Docker.
-
-Run:
+Inside Docker:
 
 ```bash
 cd /root/ros2_ws
-source /opt/ros/humble/setup.bash
-
-apt update
-apt install -y \
-  python3-pip \
-  python3-colcon-common-extensions \
-  ros-humble-vision-msgs \
-  ros-humble-cv-bridge \
-  ros-humble-web-video-server \
-  python3-opencv
-
-pip3 install --no-cache-dir -r src/ros2-child-safety-monitoring/requirements.txt
-pip3 install --no-cache-dir --force-reinstall "numpy==1.26.4" "opencv-python==4.10.0.84"
-
-rm -rf build install log
-colcon build --symlink-install
-source install/setup.bash
-
-ros2 launch child_safety_monitoring live_laptop_camera_demo.launch.py \
-  stream_url:='http://host.docker.internal:8090/video'
+bash src/ros2-child-safety-monitoring/scripts/docker_setup_workspace.sh
+bash src/ros2-child-safety-monitoring/scripts/run_laptop_camera_demo.sh
 ```
 
-Keep this terminal running.
+Keep Terminal 2 running.
 
-Good signs:
+### Terminal 3: browser pose overlay
 
-```text
-CCTV/video source connected
-Loaded YOLO pose model
-Alarm node started
-```
-
-The node name may still say `cctv_stream_node`, but it is reading the laptop camera stream.
-
----
-
-## Terminal 3: start the browser pose-overlay server
-
-Open a new terminal and enter the same Docker container:
+Open a new terminal:
 
 ```bash
 docker exec -it ros2-child-safety-dev bash
@@ -309,20 +139,14 @@ docker exec -it ros2-child-safety-dev bash
 Inside Docker:
 
 ```bash
-cd /root/ros2_ws
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-
-ros2 run web_video_server web_video_server
+bash /root/ros2_ws/src/ros2-child-safety-monitoring/scripts/run_pose_overlay_server.sh
 ```
 
-Now open this in a browser:
+Open this in browser:
 
 ```text
 http://localhost:8080/stream?topic=/camera/pose_overlay
 ```
-
-This shows the camera with YOLO pose overlay.
 
 Raw camera view:
 
@@ -330,9 +154,7 @@ Raw camera view:
 http://localhost:8080/stream?topic=/camera/image_raw
 ```
 
----
-
-## Terminal 4: check ROS nodes and topics
+### Terminal 4: check ROS topics
 
 Open another terminal:
 
@@ -343,77 +165,28 @@ docker exec -it ros2-child-safety-dev bash
 Inside Docker:
 
 ```bash
-cd /root/ros2_ws
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-
-ros2 node list
+bash /root/ros2_ws/src/ros2-child-safety-monitoring/scripts/check_live_pipeline.sh
 ```
 
-Expected important nodes:
+Important topics:
 
 ```text
-/cctv_stream_node
-/pose_estimator_node
-/tracker_node
-/interaction_analyzer_node
-/decision_node
-/alert_console_node
-/alarm_node
-```
-
-Check important topics:
-
-```bash
-ros2 topic list | grep -E "camera|poses|tracked|interaction|suspicion|alarm"
-```
-
-Expected important topics:
-
-```text
-/alarm/state
-/camera/image_raw
-/camera/pose_overlay
-/interaction/features
 /poses/raw
 /poses/tracked
+/interaction/features
 /suspicion_event
+/alarm/state
 ```
 
-Check topic rates:
-
-```bash
-ros2 topic hz /poses/raw
-ros2 topic hz /poses/tracked
-ros2 topic hz /interaction/features
-```
-
-Print one interaction feature message:
-
-```bash
-ros2 topic echo /interaction/features --once
-```
-
-For normal standing, a safe result looks like:
+For normal safe behavior, expected result:
 
 ```text
 suspicion_score: 0.0
 state: observing
+no /suspicion_event output
 ```
 
-Check that normal behavior does not trigger alerts:
-
-```bash
-timeout 10 ros2 topic echo /suspicion_event
-```
-
-Expected for normal behavior: no output.
-
----
-
-# Simulator demo
-
-The simulator is useful for class demonstration because it shows the decision and alarm behavior without needing people to perform risky actions.
+## Manual topic checks
 
 Inside Docker:
 
@@ -422,7 +195,22 @@ cd /root/ros2_ws
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 
-ros2 launch child_safety_monitoring scenario_demo.launch.py
+ros2 node list
+ros2 topic hz /poses/raw
+ros2 topic hz /poses/tracked
+ros2 topic hz /interaction/features
+ros2 topic echo /interaction/features --once
+timeout 10 ros2 topic echo /suspicion_event
+```
+
+## Simulator demo
+
+Use this when you want to demonstrate warning/high-alert behavior safely.
+
+Inside Docker:
+
+```bash
+bash /root/ros2_ws/src/ros2-child-safety-monitoring/scripts/run_simulator_demo.sh
 ```
 
 Expected output:
@@ -433,61 +221,55 @@ Expected output:
 [HIGH ALERT] score=0.92 | Suspicious child-lifting pattern detected
 ```
 
----
-
-## What the live feature values mean
-
-The interaction analyzer publishes:
+## What interaction features mean
 
 ```text
 torso_distance_norm       # smaller value means people are closer
 wrap_score                # arm/body wrap-like posture estimate
 lift_score                # upward body motion estimate
-feet_off_ground_score     # feet/ankle visibility and off-ground proxy
+feet_off_ground_score     # feet/ankle off-ground proxy
 limb_speed_score          # rapid limb movement estimate
 limb_accel_score          # sudden limb acceleration estimate
 co_motion_score           # people moving together
 suspicion_score           # combined score
-state                     # observing, watch, warning, high_alert, etc.
+state                     # observing, watch, warning, high_alert
 ```
 
-During safe normal testing, we expect low scores and no alert.
-
----
-
-## Current known limitations
+## Current limitations
 
 This is a prototype. It is not proof of kidnapping or harm.
 
-Current limitations:
+Known limitations:
 
 ```text
 - Laptop camera angle affects keypoint quality.
-- YOLO sometimes loses ankles or wrists if the body is partly out of frame.
-- Smaller/larger person role is estimated from bounding box size, not age.
-- Live high-alert behavior needs more tuning.
-- NNPACK warnings may appear on Apple Silicon Docker; they are annoying but not fatal.
+- YOLO may lose wrists/ankles if people are partly out of frame.
+- Smaller/larger role is estimated from bounding box size, not real age.
+- Live warning/high-alert thresholds still need tuning.
+- NNPACK warnings may appear on Apple Silicon Docker. They are annoying but not fatal.
 ```
 
-The safest live demo is:
+Recommended class demo flow:
 
 ```text
-1. show YOLO pose overlay in browser
-2. show /interaction/features publishing
-3. show normal behavior does not trigger false alarm
-4. use simulator demo for warning/high-alert behavior
+1. Show laptop camera stream.
+2. Show YOLO pose overlay in browser.
+3. Show two people tracked.
+4. Show /interaction/features publishing.
+5. Show normal behavior does not trigger false alert.
+6. Use simulator demo for warning/high-alert.
 ```
 
----
+## Troubleshooting
 
-# Troubleshooting
+### Camera stream does not open
 
-## Browser camera stream does not open
+Run from a terminal app with camera permission.
 
-Check Terminal 1. It should be running:
+On macOS:
 
-```bash
-python3 scripts/host_webcam_streamer.py --camera 0 --port 8090
+```text
+System Settings -> Privacy & Security -> Camera
 ```
 
 Then test:
@@ -496,11 +278,7 @@ Then test:
 http://127.0.0.1:8090/video
 ```
 
-On macOS, run from VS Code if Terminal does not have camera permission.
-
----
-
-## Docker cannot read the camera stream
+### Docker cannot read host camera stream
 
 Inside Docker, the stream URL should be:
 
@@ -508,35 +286,29 @@ Inside Docker, the stream URL should be:
 http://host.docker.internal:8090/video
 ```
 
-Make sure Terminal 1 is still running.
-
----
-
-## Browser pose overlay does not open
+### Browser pose overlay does not open
 
 Make sure Docker was started with:
 
-```text
+```bash
 -p 8080:8080
 ```
 
-Make sure Terminal 3 is running:
+Then run:
 
 ```bash
-ros2 run web_video_server web_video_server
+bash /root/ros2_ws/src/ros2-child-safety-monitoring/scripts/run_pose_overlay_server.sh
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:8080/stream?topic=/camera/pose_overlay
 ```
 
----
+### `/interaction_analyzer_node` is missing
 
-## `/interaction_analyzer_node` is missing
-
-Rebuild and relaunch in Docker:
+Rebuild:
 
 ```bash
 cd /root/ros2_ws
@@ -544,59 +316,27 @@ source /opt/ros/humble/setup.bash
 rm -rf build install log
 colcon build --symlink-install
 source install/setup.bash
-
-ros2 launch child_safety_monitoring live_laptop_camera_demo.launch.py \
-  stream_url:='http://host.docker.internal:8090/video'
 ```
 
-Then check:
+Then relaunch the live demo.
 
-```bash
-ros2 node list
-```
+### NumPy / cv_bridge error
 
----
-
-## `/interaction/features` does not publish
-
-First check that two people are visible in the browser pose overlay.
-
-Then check:
-
-```bash
-ros2 topic hz /poses/tracked
-ros2 topic hz /interaction/features
-```
-
-If `/poses/tracked` works but `/interaction/features` does not, check whether `/interaction_analyzer_node` is running:
-
-```bash
-ros2 node list | grep interaction
-```
-
----
-
-## NumPy / cv_bridge error
-
-Use the pinned versions:
+Use pinned versions:
 
 ```bash
 pip3 install --no-cache-dir --force-reinstall "numpy==1.26.4" "opencv-python==4.10.0.84"
 ```
 
----
+### NNPACK warnings
 
-## NNPACK warning
-
-You may see many lines like:
+You may see repeated warnings like:
 
 ```text
 Could not initialize NNPACK! Reason: Unsupported hardware.
 ```
 
-This warning is common on the current Mac + Docker setup and does not mean the pipeline failed.
-
----
+These are common on the current Mac + Docker setup and do not mean the pipeline failed.
 
 ## Windows and Linux notes
 
@@ -607,46 +347,18 @@ For Windows teammates:
 ```text
 - use Docker Desktop
 - run the webcam streamer on the Windows host
-- use http://host.docker.internal:8090/video inside Docker
-- use the Windows PowerShell Docker command above
+- inside Docker, use http://host.docker.internal:8090/video
+- use PowerShell/Git Bash/WSL depending on preference
 ```
 
 For Linux teammates:
 
 ```text
 - Docker Engine can run the ROS container directly
-- host.docker.internal may need:
+- if host.docker.internal does not work, start Docker with:
   --add-host=host.docker.internal:host-gateway
-- Linux can also pass a webcam directly with /dev/video0, but the host-streamer method keeps the workflow similar across machines
+- direct webcam passthrough with /dev/video0 is possible, but the host-streamer method keeps the workflow similar
 ```
-
-If a Linux teammate needs the host-streamer method and `host.docker.internal` does not work, start Docker like this:
-
-```bash
-docker run -it --rm \
-  --name ros2-child-safety-dev \
-  --add-host=host.docker.internal:host-gateway \
-  -p 8080:8080 \
-  -v "$PWD/ros2-child-safety-monitoring:/root/ros2_ws/src/ros2-child-safety-monitoring" \
-  osrf/ros:humble-desktop \
-  bash
-```
-
----
-
-## Recommended class demo flow
-
-```text
-1. Start host webcam streamer.
-2. Start live_laptop_camera_demo.launch.py in Docker.
-3. Open /camera/pose_overlay in browser.
-4. Show two people detected and tracked.
-5. Show /interaction/features publishing.
-6. Show no false alarm during normal behavior.
-7. Run scenario_demo.launch.py to show warning/high-alert behavior.
-```
-
----
 
 ## Git hygiene
 
